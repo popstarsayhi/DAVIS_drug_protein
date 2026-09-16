@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import MoleculeStructure from "./MoleculeStructure";
+import proteinData from "./proteins.json";
 import "./App.css";
 
 const API_URL =
@@ -11,10 +12,11 @@ function App() {
   // State
   // ==================================================
 
-  const [proteins, setProteins] = useState([]);
-  const [selectedProtein, setSelectedProtein] = useState("");
+  const proteins = proteinData.proteins;
+  const [selectedProtein, setSelectedProtein] = useState(
+    proteinData.proteins[0] || ""
+  );
 
-  const [loadingProteins, setLoadingProteins] = useState(true);
   const [screening, setScreening] = useState(false);
 
   const [results, setResults] = useState([]);
@@ -24,43 +26,6 @@ function App() {
   const [sortBy, setSortBy] = useState("fusion");
 
   const [error, setError] = useState("");
-
-  // ==================================================
-  // Load Proteins
-  // ==================================================
-
-  useEffect(() => {
-    fetch(`${API_URL}/proteins`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to load proteins.");
-        }
-
-        return response.json();
-      })
-      .then((data) => {
-        setProteteinsSafely(data.proteins);
-      })
-      .catch((error) => {
-        console.error(error);
-        setError("Could not load proteins.");
-        setLoadingProteins(false);
-      });
-  }, []);
-
-  function setProteteinsSafely(proteinList) {
-    const safeProteinList = Array.isArray(proteinList)
-      ? proteinList
-      : [];
-
-    setProteins(safeProteinList);
-
-    if (safeProteinList.length > 0) {
-      setSelectedProtein(safeProteinList[0]);
-    }
-
-    setLoadingProteins(false);
-  }
 
   // ==================================================
   // Run Screening
@@ -96,7 +61,7 @@ function App() {
       console.error(error);
 
       setError(
-        "Screening failed. Please check that the backend is running."
+        "The prediction server may still be waking up. Please try again in a few minutes."
       );
     } finally {
       setScreening(false);
@@ -344,25 +309,18 @@ function App() {
 
           <h2>Select a Protein</h2>
 
-          {loadingProteins ? (
-            <p>Connecting to prediction server... First Load may take up to a minute.</p>
-          ) : (
-            <select
-              value={selectedProtein}
-              onChange={(event) =>
-                setSelectedProtein(event.target.value)
-              }
-            >
-              {proteins.map((protein) => (
-                <option
-                  key={protein}
-                  value={protein}
-                >
-                  {protein}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={selectedProtein}
+            onChange={(event) =>
+              setSelectedProtein(event.target.value)
+            }
+          >
+            {proteins.map((protein) => (
+              <option key={protein} value={protein}>
+                {protein}
+              </option>
+            ))}
+          </select>
 
           <div className="selected-protein">
             Selected target:
@@ -374,11 +332,7 @@ function App() {
 
           <button
             onClick={runScreening}
-            disabled={
-              screening ||
-              loadingProteins ||
-              !selectedProtein
-            }
+            disabled={screening || !selectedProtein}
           >
             {screening
               ? "Running Screening..."
