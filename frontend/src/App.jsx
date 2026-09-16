@@ -345,7 +345,7 @@ function App() {
           <h2>Select a Protein</h2>
 
           {loadingProteins ? (
-            <p>Loading proteins...</p>
+            <p>Connecting to prediction server... First Load may take up to a minute.</p>
           ) : (
             <select
               value={selectedProtein}
