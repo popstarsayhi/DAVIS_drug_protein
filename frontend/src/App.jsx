@@ -12,10 +12,14 @@ function App() {
   // State
   // ==================================================
 
-  const [proteins, setProteins] = useState([]);
-  const [selectedProtein, setSelectedProtein] = useState("");
+  const proteins = Array.isArray(proteinData.proteins)
+    ? proteinData.proteins
+    : [];
 
-  const [loadingProteins, setLoadingProteins] = useState(true);
+  const [selectedProtein, setSelectedProtein] = useState(
+    proteins[0] || ""
+  );
+
   const [screening, setScreening] = useState(false);
 
   const [results, setResults] = useState([]);
@@ -25,43 +29,6 @@ function App() {
   const [sortBy, setSortBy] = useState("fusion");
 
   const [error, setError] = useState("");
-
-  // ==================================================
-  // Load Proteins
-  // ==================================================
-
-  useEffect(() => {
-    fetch(`${API_URL}/proteins`)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to load proteins.");
-        }
-
-        return response.json();
-      })
-      .then((data) => {
-        setProteteinsSafely(data.proteins);
-      })
-      .catch((error) => {
-        console.error(error);
-        setError("Could not load proteins.");
-        setLoadingProteins(false);
-      });
-  }, []);
-
-  function setProteteinsSafely(proteinList) {
-    const safeProteinList = Array.isArray(proteinList)
-      ? proteinList
-      : [];
-
-    setProteins(safeProteinList);
-
-    if (safeProteinList.length > 0) {
-      setSelectedProtein(safeProteinList[0]);
-    }
-
-    setLoadingProteins(false);
-  }
 
   // ==================================================
   // Run Screening
@@ -80,13 +47,9 @@ function App() {
     setViewMode("all");
     setSortBy("fusion");
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
-
     try {
       const response = await fetch(
-        `${API_URL}/screen/${encodeURIComponent(selectedProtein)}`,
-        { signal: controller.signal }
+        `${API_URL}/screen/${encodeURIComponent(selectedProtein)}`
       );
 
       if (!response.ok) {
@@ -100,15 +63,10 @@ function App() {
     } catch (error) {
       console.error(error);
 
-      if (error.name === "AbortError") {
-        setError(
-          "The prediction server is still starting. Please try again in a moment."
-        );
-      } else {
-        setError("Screening failed. Please try again in a moment.");
-      }
+      setError(
+        "Screening failed. Please check that the backend is running."
+      );
     } finally {
-      clearTimeout(timeoutId);
       setScreening(false);
     }
   }
@@ -354,25 +312,21 @@ function App() {
 
           <h2>Select a Protein</h2>
 
-          {loadingProteins ? (
-            <p>Connecting to prediction server... First Load may take up to a minute.</p>
-          ) : (
-            <select
-              value={selectedProtein}
-              onChange={(event) =>
-                setSelectedProtein(event.target.value)
-              }
-            >
-              {proteins.map((protein) => (
-                <option
-                  key={protein}
-                  value={protein}
-                >
-                  {protein}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            value={selectedProtein}
+            onChange={(event) =>
+              setSelectedProtein(event.target.value)
+            }
+          >
+            {proteins.map((protein) => (
+              <option
+                key={protein}
+                value={protein}
+              >
+                {protein}
+              </option>
+            ))}
+          </select>
 
           <div className="selected-protein">
             Selected target:
@@ -386,20 +340,13 @@ function App() {
             onClick={runScreening}
             disabled={
               screening ||
-              loadingProteins ||
               !selectedProtein
             }
           >
             {screening
-              ? "Starting prediction server & running screening..."
+              ? "Running Screening..."
               : "Run Screening"}
           </button>
-
-          {screening && (
-            <p className="screening-status">
-              First request may take a few minutes.
-            </p>
-          )}
 
           {error && (
             <p className="error">
